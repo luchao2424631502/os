@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "cstdio": "c",
+        "limits": "c"
+    }
+}

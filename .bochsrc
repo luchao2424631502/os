@@ -1,0 +1,18 @@
+megs:32 
+#romimage: file=$BXSHARE/BIOS-bochs-latest
+#vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
+romimage: 	file=/usr/share/bochs/BIOS-bochs-latest
+vgaromimage:	file=/usr/share/vgabios/vgabios.bin
+
+floppya: 1_44=a.img, status=inserted
+boot: a
+
+#新增硬盘驱动
+ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0,irq=14
+ata0-master: type=disk, path="80m.img", mode=flat, cylinders=162, heads=16,spt=63
+
+log: bochsout.txt
+
+mouse: enabled=0
+
+keyboard_mapping: enable=1,map=/usr/share/bochs/keymaps/x11-pc-us.map
