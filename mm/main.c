@@ -35,12 +35,13 @@ void task_mm()
             mm_msg.RETVAL = do_fork();
             break;
         case EXIT:
-            // do_exit(mm_msg.STATUS);
+            /* 忘了解除下面的注释,导致exit()内核没有处理 */
+            do_exit(mm_msg.STATUS);
             reply = 0;
             break;
         /* case exec: */
         case WAIT:
-            // do_wait();
+            do_wait();
             reply = 0;
             break;
         default:

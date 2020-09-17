@@ -76,6 +76,4 @@ typedef struct
 #define SHF_EXECINSTR   0x4
 #define SHF_MASKPROC    0xF0000000
 
-
-
 #endif

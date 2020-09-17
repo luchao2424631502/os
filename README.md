@@ -290,4 +290,16 @@ HD size: 83MB
 * 添加Init进程(作为所有进程的父进程 (并且init进程的内存(LDTs中描述符指向内存大小)限制在内核范围中
 * 完善上面涉及的数据结构 (GDT中描述符对应每个进程的LDTs表内容,以及proc中ldts
 > fork作为给用户使用的,在stdio.h中声明
+* fork的子进程复制父进程proc_table[]内容,除了内存需要重新申请(GDT中的LDT选择子重新指向ldts
+* 发消息通知fs task处理fork后的fd复制(增加inode节点引用)
+---
+#### 内存分配 alloc_mem()
+策略:在指定内存base地址上按照顺序(PID)和固定大小分配内存
+
+1. 实现exit(),和 wait(),进程状态分析看源码注释,cleanup():彻底清除proc,INIT进程回收僵尸进程while()->wait(),记得在mm/main.c添加内核EXIT,WAIT消息处理
+
+#### 实现exec()
+
+
+
 

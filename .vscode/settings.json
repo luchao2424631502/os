@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "cstdio": "c",
-        "limits": "c"
+        "limits": "c",
+        "cstdlib": "c"
     }
 }

@@ -31,6 +31,15 @@ void assertion_failure(char *exp, char *file, char *base_file, int line);
     库函数 (给用户编程用)
 *-----------*/
 
+/* printf.c */
+int printf(const char *fmt,...);
+int printl(const char *fmt,...);
+
+/* vsprintf.c */
+int vsprintf(char *buf,const char *fmt,va_list args);
+int sprintf(char *buf,const char *fmt,...);
+
+
 /* lib/open.c */
 int open(const char *,int);
 

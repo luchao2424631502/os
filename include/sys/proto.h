@@ -108,14 +108,6 @@ void select_console(int nr_console);
 void init_screen(TTY *p_tty);
 int is_current_console(CONSOLE *p_con);
 
-/* printf.c */
-int printf(const char *fmt,...);
-int printl(const char *fmt,...);
-
-/* vsprintf.c */
-int vsprintf(char *buf,const char *fmt,va_list args);
-int sprintf(char *buf,const char *fmt,...);
-
 /*proc.c(系统调用内核版本)*/
 void    schedule();
 void*	va2la(int pid, void* va);
