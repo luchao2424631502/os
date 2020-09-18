@@ -174,9 +174,9 @@ static void mkfs()
     
     /*---- inode map ---- */
     memset(fsbuf,0,SECTOR_SIZE);
-    for (i=0; i < (NR_CONSOLES + 2); i++)
+    for (i=0; i < (NR_CONSOLES + 3); i++)
         fsbuf[0] |= 1 << i;/* inode 0,root,tty0,tty1,tty2 */
-    assert(fsbuf[0] == 0x1F);
+    assert(fsbuf[0] == 0x3F);
     WR_SECT(ROOT_DEV,2);
     
     /*---- secter_map (记录所有扇区使用情况)---- */
@@ -185,7 +185,7 @@ static void mkfs()
 
     for (i=0; i<nr_sects / 8; i++)
         fsbuf[i] = 0xFF;
-    for (j=0; j<(nr_sects % 8); j++)
+    for (j=0; j<nr_sects % 8; j++)
         fsbuf[i] |= (1 << j);
 
     WR_SECT(ROOT_DEV,2 + sb.nr_imap_sects);/* 已使用() */
@@ -193,15 +193,39 @@ static void mkfs()
     memset(fsbuf,0,SECTOR_SIZE);
     for (i=1; i<sb.nr_smap_sects; i++)
         WR_SECT(ROOT_DEV,2 + sb.nr_imap_sects + i);
+    /*从image中提取cmd.tar文件(存的是应用程序),提取到OS的FS来 */
+    assert(INSTALL_START_SECT + INSTALL_NR_SECTS < sb.nr_sects - NR_SECTS_FOR_LOG);
+    int bit_offset = INSTALL_START_SECT - sb.nr_sects + 1;/* 首扇区号 - */
+    int bit_off_in_sect = bit_offset % (SECTOR_SIZE * 8);
+    int bit_left = INSTALL_NR_SECTS;
+    int cur_sect = bit_offset / (SECTOR_SIZE * 8);
+    RD_SECT(ROOT_DEV,2 + sb.nr_imap_sects + cur_sect);
+    while(bit_left)
+    {
+        int byte_off = bit_off_in_sect / 8;
+        fsbuf[byte_off] |= 1 << (bit_off_in_sect % 8);
+        bit_left--;
+        bit_off_in_sect++;
+        if (bit_off_in_sect == (SECTOR_SIZE * 8))
+        {
+            WR_SECT(ROOT_DEV,2 + sb.nr_imap_sects + cur_sect);
+            cur_sect++;
+            RD_SECT(ROOT_DEV,2 + sb.nr_imap_sects + cur_sect);
+            bit_off_in_sect = 0;
+        }
+    }
+    WR_SECT(ROOT_DEV,2 + sb.nr_imap_sects + cur_sect);
 
     /* ---- inodes arrays ---- */ 
+    /* inode of '/' */
     memset(fsbuf,0,SECTOR_SIZE);
     struct inode *pi = (struct inode *)fsbuf;
     pi->i_mode = I_DIRECTORY;
-    pi->i_size = DIR_ENTRY_SIZE * 4;/* root tty0~2 */
+    pi->i_size = DIR_ENTRY_SIZE * 5;/* root tty0~2 */
 
     pi->i_start_sect = sb.n_1st_sect;
     pi->i_nr_sects   = NR_DEFAULT_FILE_SECTS;
+    /* inode of '/dev_tty0~2' */
     for (i=0; i<NR_CONSOLES; i++)/* 上面和这里 写入目前所有inode节点信息存到数组中 */
     {
         pi = (struct inode *)(fsbuf + (INODE_SIZE *(i + 1)));
@@ -210,6 +234,13 @@ static void mkfs()
         pi->i_start_sect = MAKE_DEV(DEV_CHAR_TTY,i);
         pi->i_nr_sects   = 0;
     }
+    /* inode of '/cmd.tar' */
+    pi = (struct inode*)(fsbuf + (INODE_SIZE * (NR_CONSOLES + 1)));
+    pi->i_mode = I_REGULAR;
+    pi->i_size = INSTALL_NR_SECTS * SECTOR_SIZE;/* 预留扇区个数*512 */
+    pi->i_start_sect = INSTALL_START_SECT;
+    pi->i_nr_sects = INSTALL_NR_SECTS;
+    
     WR_SECT(ROOT_DEV,2 + sb.nr_imap_sects + sb.nr_smap_sects);
 
     /*---- 根目录 (存放文件索引)----*/
@@ -225,6 +256,10 @@ static void mkfs()
         pde->inode_nr = i+2;
         sprintf(pde->name,"dev_tty%d",i);
     }
+
+    (++pde)->inode_nr = NR_CONSOLES + 2;
+    strcpy(pde->name,"cmd.tar");
+    
     WR_SECT(ROOT_DEV,sb.n_1st_sect);
 }
 

@@ -1,4 +1,8 @@
 
+/* 保留一些扇区供我们在其中复制tar文件，
+该文件将被os提取并使用 */
+#define INSTALL_START_SECT  0x8000/* cmd.tar使用的首扇区号 */
+#define INSTALL_NR_SECTS    0x800/* cmd.tar最大1MB */
 
 #define	MINOR_BOOT			MINOR_hd2a
 

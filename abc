@@ -1,0 +1,7 @@
+egrep -e '^ROOT_BASE' boot/include/load.inc | sed -e 's/.*0x//g'
+egrep -e '#define[[:space:]]*INSTALL_START_SECT' ./include/sys/config.h  | sed -e 's/.*0x//g'
+
+echo "obase=10;ibase=16;(4EFF+8000)*200" | bc
+ls -l inst.tar | awk -F " " '{print $5}'
+
+dd if=inst.tar of=80m.img seek=27131392 bs=1 count=81920 conv=notrunc

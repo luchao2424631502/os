@@ -299,6 +299,117 @@ HD size: 83MB
 1. 实现exit(),和 wait(),进程状态分析看源码注释,cleanup():彻底清除proc,INIT进程回收僵尸进程while()->wait(),记得在mm/main.c添加内核EXIT,WAIT消息处理
 
 #### 实现exec()
+> 从硬盘上读取另一个可执行文件,替换掉fork出来的子进程,
+1. 写一个程序用来测试exec()
+> 目前支持的API:
+> 
+    	* 系统调用
+
+    		-lib/syscall.asm : sendrec,printx
+    
+    * 字符串操作
+    
+      -lib/string.asm : memcpy,memset,strcpy,strlen
+    
+    * FS接口
+    
+      -lib/open.c
+    
+      -lib/read.c
+    
+      -lib/write.c
+    
+      -lib/close.c
+    
+      -lib/unlink.c
+    
+    * MM接口
+    
+      -lib/fork.c
+    
+      -lib/exit.c
+    
+      -lib/wait.c
+    
+    * SYS接口
+    
+      -lib/getpid.c
+    
+    * 其他
+    
+      -lib/misc.c
+    
+      -lib/printf.c
+
+将上述函数打包成静态库orangescrt.a,
+
+make 生成.o -> `ar rcs lib/orangescrt.a lib/syscall.o lib/printf.o lib/vsprintf.o lib/string.o lib/misc.o lib/open.o lib/read.o lib/write.o lib/close.o lib/unlink.o lib/getpid.o lib/fork.o lib/exit.o lib/wait.o `
+
+编译echo.c:(注意32bit,制定了代码入口是0x1000)
+
+`gcc -I ../include/ -c -fno-builtin -Wall -m32 -o echo.o echo.c`
+
+Ld(`ld -m elf_i386 -Ttext 0x1000 -o echo echo.o ../lib/orangescrt.a `)发生问题:
+
+```makefile
+ld: 警告: 无法找到项目符号 _start; 缺省为 0000000000001000
+../lib/orangescrt.a(write.o)：在函数‘write’中：
+write.c:(.text+0x38)：对‘send_recv’未定义的引用
+```
+
+解决`send_recv`未定义的引用:将 kernel/proc.c 中的函数移动到 lib/misc.c 中 
+
+> 顺便整理文件将:
+>
+> lib/klib.c 移动-> kernel/klib.c 
+>
+> lib/kliba.asm -> kernel/kliba.asm
+>
+> 注意修改Makefile
+
+### 解决`_start`符号,(解决的是C的CRT库问题,**对于crt来说,main只不过是一个Undefined符号**):添加command/start.asm (1.调用main 2.main参数, 3.crt调用exit()结束一个c程序 )
+
+成功编译echo.c应用:
+
+```makefile
+gcc -I ../include/ -m32 -c -fno-builtin -Wall -o echo.o echo.c  
+nasm -I ../include/ -f elf -o start.o start.asm
+ld -m elf_i386 -Ttext 0x1000 -o echo echo.o start.o ../lib/orangescrt.a 
+```
+
+#### 将应用安装到OS
+
+1. 修改fd/main mkfs(),将image中的cmd.tar存入FS中
+
+2. 暂时用test.txt代替pwd.
+
+   1. 将inst.tar写入磁盘镜像
+      打包成inst.tar: tar -cvf inst.tar kernel.bin echo pwd
+   
+   2. load.inc中ROOT_BASE定义(根设备开始扇区号):`egrep -e '^ROOT_BASE' boot/include/load.inc | sed -e 's/.*0x//g'`
+   
+3. 从config.h找到INSTALL_START_SECT定义:`egrep -e '#define[[:space:]]*INSTALL_START_SECT' ./include/sys/config.h  | sed -e 's/.*0x//g'`
+   
+   4. cmd.tar字节偏移:
+   
+      `echo "obase=10;ibase=16;(4EFF+8000)*200" | bc`
+   
+   5. 查看inst.tar大小
+   
+      `ls -l inst.tar | awk -F " " '{print $5}'`
+   
+   > dd写入:
+   >
+   > `dd if=inst.tar of=80m.img seek=27131392 bs=1 count=81920 conv=notrunc`
+   
+   我的80m.img是借用源码目录里面的(并没有自己区手动分区,因为fdisk好像会默认从1024个扇区开始,因为efi分区的原因)
+   
+   > 注意inst.tar不要包含路径进去,并且dd的count是自己添加进去的文件的字节大小和
+   
+3. 成功看到解压后的结果
+
+
+
 
 
 

@@ -1,3 +1,7 @@
+#ifndef _ORANGES_STDIO_H_
+#define _ORANGES_STDIO_H_
+
+#include "type.h"
 
 /* 断言宏定义 */
 #define ASSERT
@@ -66,3 +70,5 @@ void exit(int status);
 
 /* lib/wait.c */
 int wait(int *status);
+
+#endif

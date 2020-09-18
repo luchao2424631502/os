@@ -18,8 +18,9 @@ OBJS		= kernel/kernel.o lib/syscall.o kernel/start.o kernel/main.o \
 		  kernel/clock.o kernel/keyboard.o kernel/tty.o kernel/console.o \
 		  kernel/i8259.o kernel/global.o kernel/protect.o kernel/proc.o \
 		  kernel/systask.o kernel/hd.o \
+		  kernel/kliba.o kernel/klib.o \
 		  lib/printf.o lib/vsprintf.o \
-		  lib/kliba.o lib/klib.o lib/string.o lib/misc.o \
+		  lib/string.o lib/misc.o \
 		  lib/open.o lib/read.o lib/write.o lib/close.o lib/unlink.o\
 		  lib/getpid.o \
 		  lib/fork.o lib/exit.o lib/wait.o \
@@ -115,13 +116,13 @@ kernel/systask.o: kernel/systask.c
 kernel/hd.o: kernel/hd.c
 	$(CC) $(CFLAGS) -o $@ $<
 
-lib/klib.o:lib/klib.c
+kernel/klib.o: kernel/klib.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 lib/misc.o: lib/misc.c
 	$(CC) $(CFLAGS) -o $@ $<
 
-lib/kliba.o: lib/kliba.asm 
+kernel/kliba.o: kernel/kliba.asm 
 	$(ASM) $(ASMKFLAGS) -o $@ $<
 
 lib/string.o:lib/string.asm 

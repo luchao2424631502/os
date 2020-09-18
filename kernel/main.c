@@ -134,6 +134,78 @@ int get_ticks()
 	return msg.RETVAL;
 }
 
+/* struct posix_tar_header
+ */
+struct posix_tar_header
+{                   /* offset */
+    char name[100]; /* 0 */
+    char mode[8];   /* 100 */
+    char uid[8];    /* 108 */
+    char gid[8];    /* 116 */
+    char size[12];  /* 124 */
+    char mtime[12]; /* 136 */
+    char chksum[8]; /* 148 */
+    char typeflag;  /* 156 */
+    char linkname[100]; /* 157 */
+    char magic[6];  /* 257 */
+    char version[2];    /* 263 */
+    char uname[32]; /* 265 */
+    char gname[32]; /* 297 */
+    char devmajor[8];   /* 329 */
+    char devminor[8];   /* 337 */
+    char prefix[155];   /* 345 */
+                        /* 500 */
+};
+
+/* extract the tar file and store them
+    从tar提取文件并且存储他们
+ */
+void untar(const char *filename)
+{
+    printf("[extract '%s'\n",filename);
+    int fd = open(filename,O_RDWR);
+    assert(fd != -1);
+
+    char buf[SECTOR_SIZE * 16];/* 处理16个tar header?*/
+    int chunk = sizeof(buf);
+    
+    while(1)/* 从整个tar中读取所有文件 */
+    {
+        read(fd,buf,SECTOR_SIZE);/*首先读取文件的header*/
+        if (buf[0] == 0)
+            break;/* 最后一个文件读取完 */
+        struct posix_tar_header *phdr = (struct posix_tar_header*)buf;
+
+        /* 计算这一个文件大小(char size[12]),然后继续从infd读取 */
+        char *p = phdr->size;
+        int f_len = 0;
+        while(*p)/* 8进制字符转->10进制数字 */
+            f_len = (f_len * 8) + (*p++ - '0');
+        
+        int bytes_left = f_len;/* 此文件的大小(接下来要读取的字节) */
+        /* 写入到FS中 */
+        int fdout = open(phdr->name,O_CREAT | O_RDWR);
+        if (fdout == -1)
+        {
+            printf("    failed to extract file: %s\n",phdr->name);
+            printf(" aborted]\n");
+            return ;
+        }
+        printf("    %s (%d bytes)\n",phdr->name,f_len);
+        while (bytes_left)/*  */
+        {
+            int iobytes = min(bytes_left,chunk);/* 判断这一次读取8K,还是剩余的大小 */
+            read(fd,buf,((iobytes - 1)/SECTOR_SIZE+1)*SECTOR_SIZE);/* 从80m.img把此文件读取出来,第3个参数是扇区整数 */
+            write(fdout,buf,iobytes);/* 写入80m.img,创建了对应的文件 */
+            bytes_left -= iobytes;/* 继续读取此文件 */
+        }
+        close(fdout);/* 此文件读取完毕 */
+    }
+
+    close(fd);
+    printf(" done]\n");
+}
+
 /* 为了实现fork,先添加init进程 */
 void Init()
 {
@@ -143,6 +215,10 @@ void Init()
     assert(fd_stdout == 1);
 
     printf("Init() is running ... \n");
+
+    /* 解压 cmd.tar文件(在mkfs中规定了名字是cmd.tar) */
+    untar("/cmd.tar");
+#if 0
 
     int pid = fork();
     if (pid != 0)
@@ -154,6 +230,8 @@ void Init()
     }
     else
     {
+        /* 添加exec() */
+        // execl("/echo","echo","hello","world",0);
         printf("child is running,pid: %d\n",getpid());
         exit(123);
     }
@@ -165,6 +243,8 @@ void Init()
         int child = wait(&s);
         printf("child (%d) exited with status: %d.\n",child,s);
     }
+#endif 
+    spin("Init");
 }
 
 /*进程A*/
