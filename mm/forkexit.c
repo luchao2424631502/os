@@ -43,15 +43,27 @@ int do_fork()
     /* 父进程代码段信息 */
     struct descriptor *ppd;
     ppd = &proc_table[pid].ldts[INDEX_LDT_C];/* 拿到父进程代码段描述符LDT */
-    int caller_T_base = reassembly(ppd->base_high,24,ppd->base_mid,16,ppd->base_low);
-    int caller_T_limit = reassembly(0,0,(ppd->limit_high_attr2 & 0xF),16,ppd->limit_low);
-    int caller_T_size = ((caller_T_limit + 1) * ((ppd->limit_high_attr2 & (DA_LIMIT_4K >> 8)) ? 4096 : 1));
+    int caller_T_base = reassembly(ppd->base_high,24,
+                        ppd->base_mid,16,
+                        ppd->base_low);
+    int caller_T_limit = reassembly(0,0,
+                        (ppd->limit_high_attr2 & 0xF),16,
+                        ppd->limit_low);
+    int caller_T_size = ((caller_T_limit + 1) * 
+                        ((ppd->limit_high_attr2 & (DA_LIMIT_4K >> 8)) ? 
+                        4096 : 1));
 
     /* 父进程数据段(栈)段信息 */
     ppd = &proc_table[pid].ldts[INDEX_LDT_RW];
-    int caller_D_S_base = reassembly(ppd->base_high,24,ppd->base_mid,16,ppd->base_low);
-    int caller_D_S_limit = reassembly((ppd->limit_high_attr2 & 0xF),16,0,0,ppd->limit_low);
-    int caller_D_S_size = ((caller_D_S_limit + 1) * ((ppd->limit_high_attr2 & (DA_LIMIT_4K >> 8)) ? 4096 : 1));
+    int caller_D_S_base = reassembly(ppd->base_high,24,
+                        ppd->base_mid,16,
+                        ppd->base_low);
+    int caller_D_S_limit = reassembly((ppd->limit_high_attr2 & 0xF),16,
+                        0,0,
+                        ppd->limit_low);
+    int caller_D_S_size = ((caller_T_limit + 1) * 
+                        ((ppd->limit_high_attr2 & (DA_LIMIT_4K >> 8)) ? 
+                        4096 : 1));
 
     assert((caller_T_base == caller_D_S_base) &&
             (caller_T_limit == caller_D_S_limit) &&
@@ -59,8 +71,8 @@ int do_fork()
     /* text,data段(LDT描述符指向)共享一块内存空间,申请一次内存空间 */
     int child_base = alloc_mem(child_pid,caller_T_size);/* 大小是每个进程的text段大小 */
     /* child_limit = caller_T_limit */
-    printl("{MM} 0x%x <- 0x%x (0x%x bytes)\n",
-            child_base,caller_T_base,caller_T_size);
+    // printl("{MM} 0x%x <- 0x%x (0x%x bytes)\n",
+    //         child_base,caller_T_base,caller_T_size);
     /* 从父进程复制内存段到子进程 */
     phys_copy((void*)child_base,(void*)caller_T_base,caller_T_size);
 
@@ -145,19 +157,19 @@ void do_exit(int status)
     /* 判断父亲进程现在处于什么状态 */
     if (proc_table[parent_pid].p_flags & WAITING)
     {
-        printl("{MM} ((--do_exit():: %s (%d) is WAITING, %s (%d) will be cleaned up.--))\n",
+        /* printl("{MM} ((--do_exit():: %s (%d) is WAITING, %s (%d) will be cleaned up.--))\n",
                     proc_table[parent_pid].name,parent_pid,p->name,pid);
 
         printl("{MM} ((-do_exit():1: proc_table[parent_pid].p_flags: 0x%x--))\n",
-                    proc_table[parent_pid].p_flags);
+                    proc_table[parent_pid].p_flags); */
         
         proc_table[parent_pid].p_flags &= ~WAITING;/* 取消父进程的阻塞状态 */
         cleanup(&proc_table[pid]);/* 清除child进程的所有信息 */        
     }
     else/* 子进程执行exit(),但是父进程没有在waiting状态 */
     {
-        printl("{MM} ((--do_exit():: %s (%d) is not WAITING,%s (%d) will be HANGING--))\n",
-                    proc_table[parent_pid].name,parent_pid,p->name,pid);
+        /* printl("{MM} ((--do_exit():: %s (%d) is not WAITING,%s (%d) will be HANGING--))\n",
+                    proc_table[parent_pid].name,parent_pid,p->name,pid); */
         /* 子进程将被hanging */
         proc_table[pid].p_flags |= HANGING;
     }
@@ -168,10 +180,10 @@ void do_exit(int status)
         if (proc_table[i].p_parent == pid)
         {
             proc_table[i].p_parent = INIT;
-            printl("{MM} %s (%d) exit(),so %s (%d) is INIT's child now\n",
+            /* printl("{MM} %s (%d) exit(),so %s (%d) is INIT's child now\n",
                     p->name,pid,proc_table[i].name,i);
             printl("{MM} ((--do_exit():2: proc_table[INIT].p_flags: 0x%x--))\n",
-                    proc_table[INIT].p_flags);
+                    proc_table[INIT].p_flags); */
 
             /* 如果INIT正在WAITING并且i进程处于HANGING状态 */
             if ((proc_table[INIT].p_flags & WAITING) && 
@@ -201,7 +213,7 @@ static void cleanup(struct proc* proc)
     send_recv(SEND,proc->p_parent,&msg2parent);
 
     proc->p_flags = FREE_SLOT;/* 释放槽位 */
-    printl("{MM} ((--cleanup():: %s (%d) has been cleaned up.--))\n",proc->name,proc2pid(proc));
+    // printl("{MM} ((--cleanup():: %s (%d) has been cleaned up.--))\n",proc->name,proc2pid(proc));
 }
 
 /* 
@@ -223,7 +235,7 @@ static void cleanup(struct proc* proc)
 */
 void do_wait()
 {
-    printl("{MM} ((--do_wait()--))");
+    // printl("{MM} ((--do_wait()--))");
     int pid = mm_msg.source;/* 调用这的Pid */
 
     int i;
@@ -239,8 +251,8 @@ void do_wait()
             if (p_proc->p_flags & HANGING)
             {
                 /* 释放第一个遇到的HANGING状态的child */
-                printl("{MM} ((--do_wait():: %s (%d) is HANGING, so let's clean it up.--))",
-                        p_proc->name,i);
+                /* printl("{MM} ((--do_wait():: %s (%d) is HANGING, so let's clean it up.--))",
+                        p_proc->name,i); */
                 cleanup(p_proc);
                 return ;
             }
@@ -251,13 +263,13 @@ void do_wait()
     if (children)
     {
         proc_table[pid].p_flags |= WAITING;//father 继续 WAITING
-        printl("{MM} ((--do_wait():: %s (%d) is WAITING for child to exit().--))\n",proc_table[pid].name,pid);
+        // printl("{MM} ((--do_wait():: %s (%d) is WAITING for child to exit().--))\n",proc_table[pid].name,pid);
     }
     /* 没有child进程,father's wait返回error */
     else
     {
-        printl("{MM} ((--do_wait()::%s (%d) has no child at all.--))\n",
-                proc_table[pid].name,pid);
+       /*  printl("{MM} ((--do_wait()::%s (%d) has no child at all.--))\n",
+                proc_table[pid].name,pid); */
         /* 回复father一个error */
         MESSAGE msg;
         msg.type = SYSCALL_RET;

@@ -39,7 +39,10 @@ void task_mm()
             do_exit(mm_msg.STATUS);
             reply = 0;
             break;
-        /* case exec: */
+        /* 添加exec */
+        case EXEC:
+            mm_msg.RETVAL = do_exec();
+            break;
         case WAIT:
             do_wait();
             reply = 0;

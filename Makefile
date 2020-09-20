@@ -22,7 +22,7 @@ OBJS		= kernel/kernel.o kernel/start.o kernel/main.o \
 		  kernel/i8259.o kernel/global.o kernel/protect.o kernel/proc.o \
 		  kernel/systask.o kernel/hd.o \
 		  kernel/kliba.o kernel/klib.o \
-		  mm/main.o mm/forkexit.o \
+		  mm/main.o mm/forkexit.o mm/exec.o \
 		  fs/main.o fs/open.o fs/misc.o fs/read_write.o \
 		  fs/link.o 
 
@@ -30,8 +30,8 @@ LOBJS		= lib/syscall.o \
 		  lib/printf.o lib/vsprintf.o \
 		  lib/string.o lib/misc.o \
 		  lib/open.o lib/read.o lib/write.o lib/close.o lib/unlink.o\
-		  lib/getpid.o \
-		  lib/fork.o lib/exit.o lib/wait.o 
+		  lib/getpid.o lib/stat.o \
+		  lib/fork.o lib/exit.o lib/wait.o lib/exec.o 
 DASMOUTPUT	= kernel.bin.asm 
 
 .PHONY: everything final image clean realclean disasm all buildimg
@@ -160,10 +160,19 @@ lib/exit.o: lib/exit.c
 lib/wait.o: lib/wait.c
 	$(CC) $(CFLAGS) -o $@ $<
 
+lib/exec.o: lib/exec.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+lib/stat.o: lib/stat.c
+	$(CC) $(CFLAGS) -o $@ $<
+
 mm/main.o: mm/main.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 mm/forkexit.o: mm/forkexit.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+mm/exec.o: mm/exec.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 fs/main.o: fs/main.c

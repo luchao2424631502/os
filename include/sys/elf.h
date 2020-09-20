@@ -50,6 +50,18 @@ typedef struct
     Elf32_Word      sh_entsize;
 }Elf32_Shdr;
 
+/* prog段 类型 */
+enum segment_type 
+{
+    PT_NULL,
+    PT_LOAD,
+    PT_DYNAMIC,
+    PT_INTERP,
+    PT_NOTE,
+    PT_SHLIB,
+    PT_PHDR
+};
+
 /* 定义elf魔数 */
 // #define ELFMAG  0x464c457f
 #define ELFMAG  1179403647

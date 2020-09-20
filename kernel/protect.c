@@ -15,7 +15,7 @@
 
 //局部函数,目的:生成IDT表中的门()
 static void init_idt_desc(unsigned char vector,u8 desc_type,int_handler handler,unsigned char privilege);
-static void init_descriptor(struct descriptor *p_desc,u32 base,u32 limit,u16 attribute);
+// static void init_descriptor(struct descriptor *p_desc,u32 base,u32 limit,u16 attribute);
 
 
 //kernel.asm中导出了中断函数名符号,在使用全局函数前声明一下 (等价于汇编中extern引入外部函数符号)
@@ -186,15 +186,15 @@ u32 seg2linear(u16 seg)
 }
 
 /*描述符*/
-static void init_descriptor(struct descriptor *p_desc,u32 base,u32 limit,u16 attribute) 
-{
-    p_desc->limit_low   = limit & 0x0FFFF;
-    p_desc->base_low    = base  & 0x0FFFF;
-    p_desc->base_mid    = (base >> 16) & 0x0FF;
-    p_desc->attr1       = attribute & 0xFF;
-    p_desc->limit_high_attr2 = ((limit >> 16) & 0x0F) | ((attribute >> 8) & 0xF0);
-    p_desc->base_high   = (base >> 24) & 0x0FF;
-}
+// static void init_descriptor(struct descriptor *p_desc,u32 base,u32 limit,u16 attribute) 
+// {
+//     p_desc->limit_low   = limit & 0x0FFFF;
+//     p_desc->base_low    = base  & 0x0FFFF;
+//     p_desc->base_mid    = (base >> 16) & 0x0FF;
+//     p_desc->attr1       = attribute & 0xFF;
+//     p_desc->limit_high_attr2 = ((limit >> 16) & 0x0F) | ((attribute >> 8) & 0xF0);
+//     p_desc->base_high   = (base >> 24) & 0x0FF;
+// }
 
 /* 添加全局的init_desc(上面的给原来用_一个一个修改原来调用太麻烦) */
 void init_desc(struct descriptor *p_desc,u32 base,u32 limit,u16 attribute) 

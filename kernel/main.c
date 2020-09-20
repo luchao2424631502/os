@@ -195,7 +195,8 @@ void untar(const char *filename)
         while (bytes_left)/*  */
         {
             int iobytes = min(bytes_left,chunk);/* 判断这一次读取8K,还是剩余的大小 */
-            read(fd,buf,((iobytes - 1)/SECTOR_SIZE+1)*SECTOR_SIZE);/* 从80m.img把此文件读取出来,第3个参数是扇区整数 */
+            read(fd,buf,
+                ((iobytes - 1)/SECTOR_SIZE+1)*SECTOR_SIZE);/* 从80m.img把此文件读取出来,第3个参数是扇区整数 */
             write(fdout,buf,iobytes);/* 写入80m.img,创建了对应的文件 */
             bytes_left -= iobytes;/* 继续读取此文件 */
         }
@@ -203,7 +204,7 @@ void untar(const char *filename)
     }
 
     close(fd);
-    printf(" done]\n");
+    printf("done]\n");
 }
 
 /* 为了实现fork,先添加init进程 */
@@ -218,22 +219,21 @@ void Init()
 
     /* 解压 cmd.tar文件(在mkfs中规定了名字是cmd.tar) */
     untar("/cmd.tar");
-#if 0
+// #if 0
 
     int pid = fork();
     if (pid != 0)
     {
-        printf("parent is running, child pid: %d\n",pid);
         int s;
         int child = wait(&s);
         printf("child (%d) exited with status: %d.\n",child,s);
     }
     else
     {
-        /* 添加exec() */
-        // execl("/echo","echo","hello","world",0);
-        printf("child is running,pid: %d\n",getpid());
-        exit(123);
+    
+        execl("/echo","echo","hello ","World",0);
+      /*   printf("child is running,pid: %d\n",getpid());
+        exit(123); */
     }
     
     /* MM将进程p的child过继给INIT,由INIT处理zombie进程 */
@@ -243,8 +243,8 @@ void Init()
         int child = wait(&s);
         printf("child (%d) exited with status: %d.\n",child,s);
     }
-#endif 
-    spin("Init");
+// #endif 
+    assert(0);
 }
 
 /*进程A*/

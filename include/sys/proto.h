@@ -101,6 +101,9 @@ int    do_fork();
 void    do_exit(int status);
 void    do_wait();
 
+/* mm/exec.c */
+int     do_exec();
+
 /* console.c */
 void out_char(CONSOLE *p_con,char ch);
 void scroll_screen(CONSOLE *,int);

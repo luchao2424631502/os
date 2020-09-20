@@ -13,6 +13,53 @@
 #include "hd.h"
 #include "fs.h"
 
+/* do_stat()内核版 */
+int do_stat()
+{
+    char pathname[MAX_PATH];
+    char filename[MAX_PATH];
+    
+    /* 从message得到参数 */
+    int name_len = fs_msg.NAME_LEN;
+    int src     = fs_msg.source;
+    assert(name_len < MAX_PATH);
+    phys_copy((void*)va2la(TASK_FS,pathname),
+                (void*)va2la(src,fs_msg.PATHNAME),
+                name_len);
+    pathname[name_len] = 0;
+
+    int inode_nr = search_file(pathname);
+    if (inode_nr == INVALID_INODE)
+    {
+        printl("{FS} FS::do_stat():: search_file() returns "
+                    "invalid inode: %s\n",pathname);
+        return -1;
+    }
+
+    struct inode *pin = 0;
+    struct inode *dir_inode;
+    if (strip_path(filename,pathname,&dir_inode) != 0)
+    {
+        assert(0);
+    }
+
+    pin = get_inode(dir_inode->i_dev,inode_nr);
+
+    struct stat s;
+    s.st_dev    = pin->i_dev;
+    s.st_ino    = pin->i_num;
+    s.st_mode   = pin->i_mode;
+    s.st_rdev   = is_special(pin->i_mode) ? pin->i_start_sect : NO_DEV;
+    s.st_size   = pin->i_size;
+
+    put_inode(pin);
+
+    phys_copy((void*)va2la(src,fs_msg.BUF),
+                (void*)va2la(TASK_FS,&s),
+                sizeof(struct stat));
+    return 0;
+}
+
 /* 搜索文件并且返回inode */
 int search_file(char *path)
 {

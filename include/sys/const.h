@@ -161,7 +161,7 @@ enum msgtype{
 #define PATHNAME        u.m3.m3p1
 #define FLAGS           u.m3.m3i1
 #define NAME_LEN        u.m3.m3i2
-
+#define BUF_LEN         u.m3.m3i3
 #define CNT             u.m3.m3i2
 #define REQUEST         u.m3.m3i2
 #define PROC_NR         u.m3.m3i3

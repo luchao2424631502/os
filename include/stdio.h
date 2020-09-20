@@ -31,6 +31,26 @@ void assertion_failure(char *exp, char *file, char *base_file, int line);
 
 #define MAX_PATH    128
 
+struct stat
+{
+    int st_dev;
+    int st_ino;
+    int st_mode;
+    int st_rdev;
+    int st_size;
+};
+
+struct time 
+{
+    u32 year;
+    u32 month;
+    u32 day;
+    u32 hour;
+    u32 minute;
+    u32 second;
+};
+
+
 /* ---------*
     库函数 (给用户编程用)
 *-----------*/
@@ -70,5 +90,13 @@ void exit(int status);
 
 /* lib/wait.c */
 int wait(int *status);
+
+/* lib/exec.c */
+int exec(const char *path);
+int execl(const char *path,const char *arg,...);
+int execv(const char *path,char *arg[]);
+
+/* lib/stat.c */
+int stat(const char *path,struct stat* buf);
 
 #endif
