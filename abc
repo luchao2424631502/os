@@ -1,7 +1,78 @@
-egrep -e '^ROOT_BASE' boot/include/load.inc | sed -e 's/.*0x//g'
-egrep -e '#define[[:space:]]*INSTALL_START_SECT' ./include/sys/config.h  | sed -e 's/.*0x//g'
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/mman.h>
 
-echo "obase=10;ibase=16;(4EFF+8000)*200" | bc
-ls -l inst.tar | awk -F " " '{print $5}'
+int main()
+{
+	int fd;
+	int ret;
+	unsigned char *buf;
+	struct stat stat;
+	void *res;
+	unsigned int ImageBase;
+	int rebase[2] = {0x0B,0x12};
+	unsigned char *temp;
 
-dd if=inst.tar of=80m.img seek=27131392 bs=1 count=81920 conv=notrunc
+	//ImageBase = 0x50000000;
+	ImageBase = 0x00010000;
+
+	fd = open("hello.bin",O_RDWR);
+	if (fd < 0)
+	{
+		perror("fd");
+		return -1;
+	}
+
+	ret = fstat(fd,&stat);
+	if (ret < 0)
+	{
+		perror("fstat");
+		return -1;
+	}
+
+	buf = (unsigned char *)malloc(stat.st_size);
+	if (buf == NULL)
+	{
+		perror("allocate");
+		return -1;
+	}
+
+	ret = read(fd,buf,stat.st_size);
+	if (ret < 0 || ret != stat.st_size)
+	{
+		perror("read");
+		return -1;
+	}
+
+	res = mmap((void*)ImageBase,stat.st_size,PROT_EXEC | PROT_WRITE | PROT_READ,MAP_PRIVATE,fd,0);
+	if (res == MAP_FAILED)
+	{
+		perror("mmap");
+		return -1;
+	}
+
+	printf("%p \n",res);
+	
+	for (int i=0; i<2; i++)
+		*(unsigned int *)((char *)res + rebase[i]) += ImageBase;
+
+	temp = (unsigned char *)res;
+	for (int i=0; i<0x100; i++)
+		printf("%02X%s",*temp++,(i+1)%0x10?" " : "\n");
+
+//	__asm__ volatile ("\n\t"\
+//			"movl $1,%%eax\n\t"\
+//			"jmp *%0\n\t"\
+//			::"mem"(res):
+//			);
+	__asm__ volatile ("\n\t"\
+			"jmp *%0\n\t"\
+			::"mem"(res):
+			);
+	printf("done\n");
+	return 0;
+}

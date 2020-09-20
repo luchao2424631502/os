@@ -11,22 +11,27 @@ ASMKFLAGS	= -I include/ -I include/sys/ -f elf
 CFLAGS		= -I include/ -I include/sys/ -c -fno-builtin -Wall -m32
 LDFLAGS		= -s -Ttext $(ENTRYPOINT) -m elf_i386 
 DASMFLAGS	= -u -o $(ENTRYPOINT) -e $(ENTRYOFFSET)
+ARFLAGS		= rcs
 
 ORANGESBOOT	= boot/boot.bin boot/loader.bin 
 ORANGESKERNEL	= kernel.bin 
-OBJS		= kernel/kernel.o lib/syscall.o kernel/start.o kernel/main.o \
+LIB		= lib/orangescrt.a
+
+OBJS		= kernel/kernel.o kernel/start.o kernel/main.o \
 		  kernel/clock.o kernel/keyboard.o kernel/tty.o kernel/console.o \
 		  kernel/i8259.o kernel/global.o kernel/protect.o kernel/proc.o \
 		  kernel/systask.o kernel/hd.o \
 		  kernel/kliba.o kernel/klib.o \
+		  mm/main.o mm/forkexit.o \
+		  fs/main.o fs/open.o fs/misc.o fs/read_write.o \
+		  fs/link.o 
+
+LOBJS		= lib/syscall.o \
 		  lib/printf.o lib/vsprintf.o \
 		  lib/string.o lib/misc.o \
 		  lib/open.o lib/read.o lib/write.o lib/close.o lib/unlink.o\
 		  lib/getpid.o \
-		  lib/fork.o lib/exit.o lib/wait.o \
-		  mm/main.o mm/forkexit.o \
-		  fs/main.o fs/open.o fs/misc.o fs/read_write.o \
-		  fs/link.o 
+		  lib/fork.o lib/exit.o lib/wait.o 
 DASMOUTPUT	= kernel.bin.asm 
 
 .PHONY: everything final image clean realclean disasm all buildimg
@@ -35,15 +40,13 @@ everything: $(ORANGESBOOT) $(ORANGESKERNEL)
 
 all: realclean everything
 
-final: all clean 
+image: realclean everything clean buildimg
 
-image: final buildimg
+clean:
+	rm -f $(OBJS) $(LOBJS)
 
-clean:#删除所有的目标文件
-	rm -f $(OBJS)
-#删除所有编译出来的文件
 realclean:
-	rm -f $(OBJS) $(ORANGESBOOT) $(ORANGESKERNEL)
+	rm -f $(OBJS) $(LOBJS) $(LIB) $(ORANGESBOOT) $(ORANGESKERNEL)
 
 #暂时先忽略反汇编
 disasm:
@@ -64,10 +67,12 @@ boot/loader.bin:boot/loader.asm boot/include/load.inc \
 	$(ASM) $(ASMBFLAGS) -o $@ $<
 
 #kernel.bin=4个目标文件链接
-$(ORANGESKERNEL):$(OBJS)
-	$(LD) $(LDFLAGS) -o $(ORANGESKERNEL) $(OBJS)
+$(ORANGESKERNEL):$(OBJS) $(LIB)
+	$(LD) $(LDFLAGS) -o $(ORANGESKERNEL) $^
 
-#kernel/ 下的文件
+$(LIB):$(LOBJS)
+	$(AR) $(ARFLAGS) $@ $^
+
 kernel/kernel.o: kernel/kernel.asm
 	$(ASM) $(ASMKFLAGS) -o $@ $<
 
