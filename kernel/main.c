@@ -207,6 +207,74 @@ void untar(const char *filename)
     printf("done]\n");
 }
 
+/* 简单shell */
+void shabby_shell(const char *tty_name)
+{
+    int fd_stdin = open(tty_name,O_RDWR);
+    assert(fd_stdin == 0);
+    int fd_stdout= open(tty_name,O_RDWR);
+    assert(fd_stdout == 1);
+
+    char rdbuf[128];
+    
+    while(1)
+    {
+        write(1,"$",2);
+        int r = read(0,rdbuf,70);
+        rdbuf[r] = 0;
+
+        int argc = 0;
+        char *argv[PROC_ORIGIN_STACK];
+        char *p = rdbuf;
+        char *s;
+        int word = 0;
+        char ch;
+        do {
+            ch = *p;
+            if (*p != ' ' && *p != 0 && !word)
+            {
+                s = p;
+                word = 1;
+            }
+            if ((*p == ' ' || *p == 0) && word)
+            {
+                word = 0;
+                argv[argc++] = s;
+                *p = 0;
+            }
+            p++;
+        }while(ch);
+        argv[argc] = 0;
+        
+        int fd = open(argv[0],O_RDWR);
+        if (fd == -1)
+        {
+            if (rdbuf[0])
+            {
+                write(1,"{",1);
+                write(1,rdbuf,r);
+                write(1,"}\n",2);
+            }
+        }
+        else 
+        {
+            close(fd);
+            int pid = fork();
+            if (pid != 0)
+            {
+                int s;
+                wait(&s);
+            }
+            else
+            {
+                execv(argv[0],argv);
+            }   
+        }
+    }
+    close(1);
+    close(0);
+}
+
 /* 为了实现fork,先添加init进程 */
 void Init()
 {
@@ -221,21 +289,25 @@ void Init()
     untar("/cmd.tar");
 // #if 0
 
-    int pid = fork();
-    if (pid != 0)
+    char *tty_list[] = {"/dev_tty1","/dev_tty2"};
+
+    int i;
+    for (i=0; i<sizeof(tty_list)/sizeof(tty_list[0]); i++)
     {
-        int s;
-        int child = wait(&s);
-        printf("child (%d) exited with status: %d.\n",child,s);
+        int pid = fork();
+        if (pid != 0)
+            printf("[parent is running, child pid:%d]\n",pid);
+        else 
+        {
+            printf("[child is running, pid:%d]\n",getpid());
+            close(fd_stdin);
+            close(fd_stdout);
+
+            shabby_shell(tty_list[i]);
+            assert(0);
+        }
     }
-    else
-    {
-    
-        execl("/echo","echo","hello ","World",0);
-      /*   printf("child is running,pid: %d\n",getpid());
-        exit(123); */
-    }
-    
+
     /* MM将进程p的child过继给INIT,由INIT处理zombie进程 */
     while(1)
     {
