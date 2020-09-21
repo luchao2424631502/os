@@ -64,6 +64,9 @@ void task_fs()
         case EXIT:
             fs_msg.RETVAL = fs_exit();
             break;
+        case LSEEK:
+            fs_msg.OFFSET = do_lseek();
+            break;
         case STAT:
             fs_msg.RETVAL = do_stat();
             break;
@@ -102,7 +105,16 @@ static void init_fs()
     assert(dd_map[MAJOR(ROOT_DEV)].driver_nr != INVALID_DRIVER);
     send_recv(BOTH,dd_map[MAJOR(ROOT_DEV)].driver_nr,&driver_msg);
 
-    mkfs();
+
+    /* 从根设备读取超级块 */
+    RD_SECT(ROOT_DEV,1);
+    /* 查看超级块中是否有标记,没有则执行一次mkfs */
+    sb = (struct super_block*)fsbuf;
+    if (sb->magic != MAGIC_V1)
+    {
+        printl("{FS} mkfs\n");
+        mkfs();
+    }
 
     /* 为跟文件加载超级块  */
     read_super_block(ROOT_DEV);
@@ -361,9 +373,13 @@ struct inode *get_inode(int dev,int num)
     q->i_cnt = 1;
 
     struct super_block *sb = get_super_block(dev);
-    int blk_nr = 1 + 1 + sb->nr_imap_sects + sb->nr_smap_sects + ((num - 1) / (SECTOR_SIZE / INODE_SIZE));
+    int blk_nr = 1 + 1 + sb->nr_imap_sects + sb->nr_smap_sects + 
+            ((num - 1) / (SECTOR_SIZE / INODE_SIZE));
     RD_SECT(dev,blk_nr);/* 将此inode所在扇区读取到内存中 */
-    struct inode * pinode = (struct inode*)((u8 *)fsbuf + ((num - 1) % (SECTOR_SIZE / INODE_SIZE)) * INODE_SIZE);
+    struct inode * pinode = 
+        (struct inode*)((u8 *)fsbuf + 
+                ((num - 1) % (SECTOR_SIZE / INODE_SIZE)) 
+                * INODE_SIZE);
     q->i_mode = pinode->i_mode;
     q->i_size = pinode->i_size;
     q->i_start_sect = pinode->i_start_sect;

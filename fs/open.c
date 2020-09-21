@@ -57,27 +57,48 @@ int do_open()
     int inode_nr = search_file(pathname);
 
     struct inode *pin       = 0;
-    if (flags & O_CREAT)/* 判断是否是创建文件 */
+    if (inode_nr == INVALID_INODE)/* 文件不存在 */
     {
-        if (inode_nr)/* 文件已存在(还创建文件?) */
+        if (flags & O_CREAT)
+            pin = create_file(pathname,flags);
+        else
         {
-            printl("{FS} file exists.\n");
+            printl("{FS} file not exists: %s\n",pathname);
             return -1;
         }
-        else 
-        {
-            pin = create_file(pathname,flags);
-        }
+        
     }
-    else 
+
+    else if (flags & O_RDWR)/* 文件存在 */
     {
-        assert(flags & O_RDWR);/* 目前只提供读写选项 */
+        if ((flags & O_CREAT) && (!(flags & O_TRUNC)))
+        {
+            assert(flags == (O_RDWR | O_CREAT));
+            printl("{FS} file exists: %s\n",pathname);
+            return -1;
+        }
+        assert((flags == O_RDWR         ) || 
+                (flags == (O_RDWR | O_TRUNC)) || 
+                (flags == (O_RDWR | O_TRUNC | O_CREAT)));
+        
 
         char filename[MAX_PATH];
         struct inode *dir_inode;
         if (strip_path(filename,pathname,&dir_inode) != 0)
             return -1;
         pin = get_inode(dir_inode->i_dev,inode_nr);
+    }
+    else
+    {
+        printl("{FS} file exists: %s\n",pathname);
+        return -1;
+    }
+    
+    if (flags & O_TRUNC)
+    {
+        assert(pin);
+        pin->i_size = 0;
+        sync_inode(pin);
     }
 
     if (pin)
@@ -106,7 +127,9 @@ int do_open()
             assert(dd_map[MAJOR(dev)].driver_nr != INVALID_DRIVER);
 
             /* 给对应的服务进程发送消息 */
-            send_recv(BOTH,dd_map[MAJOR(dev)].driver_nr,&driver_msg);
+            send_recv(BOTH,
+                        dd_map[MAJOR(dev)].driver_nr,
+                        &driver_msg);
         }
         else if (imode == I_DIRECTORY)/* 目录 */
         {

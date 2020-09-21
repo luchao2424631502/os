@@ -79,6 +79,7 @@ struct super_block *get_super_block(int dev);
 /* fs/open.c */
 int do_open();
 int do_close();
+int do_lseek();
 
 /* fs/read_write.c */
 int do_rdwt();

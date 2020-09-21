@@ -24,6 +24,7 @@ void assertion_failure(char *exp, char *file, char *base_file, int line);
 
 #define O_CREAT     1
 #define O_RDWR      2
+#define O_TRUNC     4
 
 #define SEEK_SET    1
 #define SEEK_CUR    2
@@ -75,6 +76,9 @@ int read(int ,void *,int );
 
 /* lib/write.c */
 int write(int ,const void *,int );
+
+/* lib/lseek.c */
+int lseek(int,int,int);
 
 /* lib/unlink.c */
 int unlink(const char *);

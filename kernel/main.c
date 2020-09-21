@@ -168,12 +168,22 @@ void untar(const char *filename)
 
     char buf[SECTOR_SIZE * 16];/* 处理16个tar header?*/
     int chunk = sizeof(buf);
+    int i = 0;
+    int bytes = 0;
     
     while(1)/* 从整个tar中读取所有文件 */
     {
-        read(fd,buf,SECTOR_SIZE);/*首先读取文件的header*/
-        if (buf[0] == 0)
-            break;/* 最后一个文件读取完 */
+        bytes = read(fd,buf,SECTOR_SIZE);/*首先读取文件的header*/
+        assert(bytes == SECTOR_SIZE);
+        
+        if (buf[0] == 0) 
+        {
+            if (i == 0)
+                printf("    need not unpack the file.\n");
+            break;
+        }
+        i++;
+
         struct posix_tar_header *phdr = (struct posix_tar_header*)buf;
 
         /* 计算这一个文件大小(char size[12]),然后继续从infd读取 */
@@ -184,11 +194,12 @@ void untar(const char *filename)
         
         int bytes_left = f_len;/* 此文件的大小(接下来要读取的字节) */
         /* 写入到FS中 */
-        int fdout = open(phdr->name,O_CREAT | O_RDWR);
+        int fdout = open(phdr->name,O_CREAT | O_RDWR | O_TRUNC);
         if (fdout == -1)
         {
             printf("    failed to extract file: %s\n",phdr->name);
             printf(" aborted]\n");
+            close(fd);
             return ;
         }
         printf("    %s (%d bytes)\n",phdr->name,f_len);
@@ -197,14 +208,22 @@ void untar(const char *filename)
             int iobytes = min(bytes_left,chunk);/* 判断这一次读取8K,还是剩余的大小 */
             read(fd,buf,
                 ((iobytes - 1)/SECTOR_SIZE+1)*SECTOR_SIZE);/* 从80m.img把此文件读取出来,第3个参数是扇区整数 */
-            write(fdout,buf,iobytes);/* 写入80m.img,创建了对应的文件 */
+            bytes = write(fdout,buf,iobytes);/* 写入80m.img,创建了对应的文件 */
+            assert(bytes == iobytes);
             bytes_left -= iobytes;/* 继续读取此文件 */
         }
         close(fdout);/* 此文件读取完毕 */
     }
-
+    
+    if (i)
+    {
+        lseek(fd,0,SEEK_SET);
+        buf[0] = 0;
+        bytes = write(fd,buf,1);
+        assert(bytes == 1);
+    }
     close(fd);
-    printf("done]\n");
+    printf("done, %d files extracted]\n",i);
 }
 
 /* 简单shell */
