@@ -411,7 +411,13 @@ ld -m elf_i386 -Ttext 0x1000 -o echo echo.o start.o ../lib/orangescrt.a
 
 mm/main.c处理EXEC消息,调用mm/exec.c(do_exec()函数) execl参数赋值有点问题?
 
+#### 简单shell解析
 
+#### mkfs只执行一次
+
+------
+
+> 2020/9/21结束
 
 
 
